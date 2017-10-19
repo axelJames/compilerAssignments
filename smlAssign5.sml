@@ -104,6 +104,10 @@ val ab =findInOut AtomMap.empty AtomMap.empty x1 y2
 fun tostr (x::xs) = (Atom.toString x)::tostr xs
 	|tostr [] = [];
 
+fun makeMapfromList li = case li of
+	(x,y)::ls => AtomMap.insert(makeMapfromList(ls),Atom.atom(x),y)
+	|[] => AtomMap.empty
+
 val a = (List.map AtomSet.listItems (AtomMap.listItems(#1 ab))) 
 val sa= (List.map tostr a)
 val b = (List.map AtomSet.listItems (AtomMap.listItems(#2 ab))) 
@@ -177,8 +181,12 @@ fun findBlockInOut gr instMap start = let
   end
 
 (*-----------------------------------------------------------------------------------------------------------------------------------*)
-val bin=findBlockInOut x1 y2 "a"
+(*val bin=findBlockInOut x1 y2 "a"*)
 
+val abc = [("1",("1",["a"],[])),("2",("2",["b"],["a"])),("3",("3",["c"],["b","c"])),("4",("4",["a"],["b"])),("5",("5",[],["a"])),("6",("6",[],["c"]))]
+val ab1 = makeMapfromList abc
+val gs = [("1",["2"]),("2",["3"]),("3",["4"]),("4",["5"]),("5",["2","6"]),("6",[])]
+val bin=findBlockInOut gs ab1 "1"
 val a = (List.map AtomSet.listItems (AtomMap.listItems(#1 bin))) 
 val sa= (List.map tostr a)
 val b = (List.map AtomSet.listItems (AtomMap.listItems(#2 bin))) 
