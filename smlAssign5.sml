@@ -1,3 +1,5 @@
+(*----------STRUCTURES--------------*)
+
 signature NODE = 
 sig
 	eqtype nod
@@ -48,6 +50,33 @@ structure gra = Graph(structure node =
 							type nod= string
 						end)
 
+structure iMap = ListMapFn (struct
+							type ord_key = string
+							val compare = String.compare
+							end);
+ 
+
+(*---------HELPER FUNCTIONS--------------*)
+(*---------------------------------------------------------------------------------------------------------------------------------------*)
+
+fun checkEqual (l1::ls1) (l2::ls2)= if AtomSet.equal(l1,l2) then checkEqual ls1 ls2 else false
+	|checkEqual l1 l2= if List.null(l1) andalso List.null(l2) then true else false
+
+fun tostr (x::xs) = (Atom.toString x)::tostr xs
+	|tostr [] = [];
+
+fun makeMapfromList li = case li of
+	(x,y)::ls => AtomMap.insert(makeMapfromList(ls),Atom.atom(x),y)
+	|[] => AtomMap.empty
+
+fun atomSettoSList x= (List.map Atom.toString (AtomSet.listItems(x)))
+
+fun check x y = (x=y)
+
+
+(*--------------FIND IN AND OUT SET-----------------*)
+(*---------------------------------------------------------------------------------------------------------------------------------------*)
+
 fun findNewOut succ inMap out = case succ of 
 	s::xs => findNewOut xs inMap (AtomSet.union(out, getOpt(AtomMap.find(inMap,s),AtomSet.empty)))
 	|[] => out
@@ -80,11 +109,9 @@ fun iterInOut inMap outMap gr i instMap = case i of
 			)
 			
 		)
-					in iterInOut nIn (AtomMap.insert(outMap,ins,findNewOut (List.map Atom.atom (gra.suc gr (Atom.toString ins))) nIn AtomSet.empty)) gr is instMap
-					 end
+				in iterInOut nIn (AtomMap.insert(outMap,ins,findNewOut (List.map Atom.atom (gra.suc gr (Atom.toString ins))) nIn AtomSet.empty)) gr is instMap
+				 end
 
-fun checkEqual (l1::ls1) (l2::ls2)= if AtomSet.equal(l1,l2) then checkEqual ls1 ls2 else false
-	|checkEqual l1 l2= if List.null(l1) andalso List.null(l2) then true else false
 
 fun findInOut inMap outMap gr instMap = let 
 	val (newInMap,newOutMap) = (iterInOut inMap outMap gr (List.map Atom.atom (gra.nodes gr)) instMap) in 
@@ -94,25 +121,7 @@ fun findInOut inMap outMap gr instMap = let
 	end
 
 
-val x1 = [("a",["b","c"]),("b",[]),("c",[])]
-val u1=(List.map Atom.atom ["l","f"])
-val m1=AtomMap.singleton(Atom.atom("a"),("a",["l"],[]:string list))
-val y1 = AtomMap.insert(m1,Atom.atom("b"),("b",["m"],["l"]))
-val y2 = AtomMap.insert(y1,Atom.atom("c"),("c",["n"],["l"]))
-val ab =findInOut AtomMap.empty AtomMap.empty x1 y2
-
-fun tostr (x::xs) = (Atom.toString x)::tostr xs
-	|tostr [] = [];
-
-fun makeMapfromList li = case li of
-	(x,y)::ls => AtomMap.insert(makeMapfromList(ls),Atom.atom(x),y)
-	|[] => AtomMap.empty
-
-val a = (List.map AtomSet.listItems (AtomMap.listItems(#1 ab))) 
-val sa= (List.map tostr a)
-val b = (List.map AtomSet.listItems (AtomMap.listItems(#2 ab))) 
-val sb= (List.map tostr b)
-
+(*--------------FIND GEN SET AND KILL SET OF INSTRUCTIONS----------------*)
 (*--------------------------------------------------------------------------------------------------------------------------------*)
 
 fun findGenKill gen kill ins = 
@@ -122,18 +131,9 @@ fun findGenKill gen kill ins =
 	 end
 	else (gen,kill)
 
-val xc = [("1",["b"],["a"]),("2",["c"],["c","b"]),("3",["a"],["b"])]
-val wqe = findGenKill AtomSet.empty AtomSet.empty (List.rev(xc))
-val af = (List.map Atom.toString (AtomSet.listItems(#2 wqe))) 
 
-
+(*------------FINDING BASIC BLOCKS----------------*)
 (*--------------------------------------------------------------------------------------------------------------------------------*)
-structure iMap = ListMapFn (struct
-							type ord_key = string
-							val compare = String.compare
-							end);
- 
-fun check x y = (x=y)
 
 fun findMembers gr mem l= let val x= gra.suc gr mem in
 	if List.length(gra.pred gr mem)<2 orelse mem =l then
@@ -153,6 +153,7 @@ fun findBasic leaderMap lQueue lList gr = case lQueue of
 	|[] => iMap.listItemsi(leaderMap)
 
 
+(*-----------MAKE GRAPH WITH BASIC BLOCKS AS NODES-------------*)
 (*---------------------------------------------------------------------------------------------------------------------------------*)
 fun convertGraph gr bGraph leaderMap = case leaderMap of
 	(x1,x2)::xs => 
@@ -163,14 +164,14 @@ fun lookupIns insList instMap= case insList of
 	x::xs => [AtomMap.lookup(instMap,Atom.atom(x) )]@(lookupIns xs instMap)
 	|[] => [] 
 
-fun atomSettoSList x= (List.map Atom.toString (AtomSet.listItems(x)))
-
 fun convertNodes blockMap leaderMap instMap= case leaderMap of 
 	(x1,x2)::xs => let val (y1,y2)= findGenKill AtomSet.empty AtomSet.empty (List.rev(lookupIns x2 instMap))
 	in convertNodes (AtomMap.insert(blockMap,Atom.atom(x1),(x1,(atomSettoSList(y2)), (atomSettoSList(y1))))) xs instMap
 	end
 	|[] => blockMap
 
+
+(*------------MAKE IN AND OUT OF BASIC BLOCKS-----------*)
 (*---------------------------------------------------------------------------------------------------------------------------------*)
 fun findBlockInOut gr instMap start = let 
 	val leaderMap = findBasic iMap.empty [start] [] gr;
@@ -180,8 +181,26 @@ fun findBlockInOut gr instMap start = let
   	findInOut AtomMap.empty AtomMap.empty bGraph blockMap
   end
 
+
+(*-------------TEST CASES--------------*)
 (*-----------------------------------------------------------------------------------------------------------------------------------*)
 (*val bin=findBlockInOut x1 y2 "a"*)
+
+(*val x1 = [("a",["b","c"]),("b",[]),("c",[])]
+val u1=(List.map Atom.atom ["l","f"])
+val m1=AtomMap.singleton(Atom.atom("a"),("a",["l"],[]:string list))
+val y1 = AtomMap.insert(m1,Atom.atom("b"),("b",["m"],["l"]))
+val y2 = AtomMap.insert(y1,Atom.atom("c"),("c",["n"],["l"]))
+val ab =findInOut AtomMap.empty AtomMap.empty x1 y2
+val a = (List.map AtomSet.listItems (AtomMap.listItems(#1 ab))) 
+val sa= (List.map tostr a)
+val b = (List.map AtomSet.listItems (AtomMap.listItems(#2 ab))) 
+val sb= (List.map tostr b)
+
+val xc = [("1",["b"],["a"]),("2",["c"],["c","b"]),("3",["a"],["b"])]
+val wqe = findGenKill AtomSet.empty AtomSet.empty (List.rev(xc))
+val af = (List.map Atom.toString (AtomSet.listItems(#2 wqe))) *)
+
 
 val abc = [("1",("1",["a"],[])),("2",("2",["b"],["a"])),("3",("3",["c"],["b","c"])),("4",("4",["a"],["b"])),("5",("5",[],["a"])),("6",("6",[],["c"]))]
 val ab1 = makeMapfromList abc
