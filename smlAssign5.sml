@@ -101,8 +101,6 @@ val y1 = AtomMap.insert(m1,Atom.atom("b"),("b",["m"],["l"]))
 val y2 = AtomMap.insert(y1,Atom.atom("c"),("c",["n"],["l"]))
 val ab =findInOut AtomMap.empty AtomMap.empty x1 y2
 
-val sd=(gra.nodes x1)
-
 fun tostr (x::xs) = (Atom.toString x)::tostr xs
 	|tostr [] = [];
 
@@ -169,7 +167,7 @@ fun convertNodes blockMap leaderMap instMap= case leaderMap of
 	end
 	|[] => blockMap
 
-
+(*---------------------------------------------------------------------------------------------------------------------------------*)
 fun findBlockInOut gr instMap start = let 
 	val leaderMap = findBasic iMap.empty [start] [] gr;
 	val bGraph = convertGraph gr [] leaderMap;
@@ -177,3 +175,11 @@ fun findBlockInOut gr instMap start = let
   in
   	findInOut AtomMap.empty AtomMap.empty bGraph blockMap
   end
+
+(*-----------------------------------------------------------------------------------------------------------------------------------*)
+val bin=findBlockInOut x1 y2 "a"
+
+val a = (List.map AtomSet.listItems (AtomMap.listItems(#1 bin))) 
+val sa= (List.map tostr a)
+val b = (List.map AtomSet.listItems (AtomMap.listItems(#2 bin))) 
+val sb= (List.map tostr b)
