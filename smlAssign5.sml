@@ -77,6 +77,9 @@ fun check x y = (x=y)
 (*--------------FIND IN AND OUT SET-----------------*)
 (*---------------------------------------------------------------------------------------------------------------------------------------*)
 
+fun 
+
+
 fun findNewOut succ inMap out = case succ of 
 	s::xs => findNewOut xs inMap (AtomSet.union(out, getOpt(AtomMap.find(inMap,s),AtomSet.empty)))
 	|[] => out
